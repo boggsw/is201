@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mountain Climber Game</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #e0f7fa; /* Light blue for sky */
+            margin-top: 20px;
+        }
+
+        #gameCanvas {
+            background-color: #795548; /* Brown for mountain */
+            border: 2px solid #4a3b31;
+        }
+
+        #altitude {
+            font-weight: bold;
+        }
+
+        #startButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mountain Climb</h1>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <p>Altitude: <span id="altitude">0</span> meters</p>
+    <button id="startButton">Start Climb</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const altitudeDisplay = document.getElementById('altitude');
+        const startButton = document.getElementById('startButton');
+
+        const climberSize = 20;
+        let climber = { x: canvas.width / 2 - climberSize / 2, y: canvas.height - 50 };
+        const rockSize = 15;
+        let rocks = [];
+        let velocity = 2; // Climber's upward velocity (simulated)
+        let gameInterval;
+        let altitude = 0;
+        let gameSpeed = 100; // milliseconds per frame
+        let rockSpawnInterval = 1500; // milliseconds
+        let rockSpawner; // To hold the interval ID for rock spawning
+
+        function drawClimber() {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(climber.x, climber.y, climberSize, climberSize);
+        }
+
+        function drawRock(rock) {
+            ctx.fillStyle = 'gray';
+            ctx.beginPath();
+            ctx.arc(rock.x, rock.y, rockSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function moveClimber() {
+            climber.y -= velocity;
+            altitude += velocity;
+            altitudeDisplay.textContent = altitude;
+
+            // Keep climber within horizontal bounds
+            if (climber.x < 0) {
+                climber.x = 0;
+            } else if (climber.x > canvas.width - climberSize) {
+                climber.x = canvas.width - climberSize;
+            }
+
+            // If climber reaches the top (arbitrary point), game over/win
+            if (climber.y < 50) {
+                clearInterval(gameInterval);
+                clearInterval(rockSpawner);
+                alert(`You reached the summit! Altitude: ${altitude} meters`);
+                resetGame();
+            }
+        }
+
+        function spawnRock() {
+            const rockX = Math.random() * canvas.width;
+            const rockY = -rockSize;
+            rocks.push({ x: rockX, y: rockY });
+        }
+
+        function moveRocks() {
+            for (let i = 0; i < rocks.length; i++) {
+                rocks[i].y += 3; // Rocks fall downwards
+                if (rocks[i].y > canvas.height + rockSize) {
+                    rocks.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function checkCollision() {
+            for (const rock of rocks) {
+                const distX = Math.abs(rock.x - (climber.x + climberSize / 2));
+                const distY = Math.abs(rock.y - (climber.y + climberSize / 2));
+
+                if (distX < climberSize / 2 + rockSize && distY < climberSize / 2 + rockSize) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function gameLoop() {
+            if (checkCollision()) {
+                clearInterval(gameInterval);
+                clearInterval(rockSpawner);
+                alert(`Ouch! You were hit by a rock! Altitude reached: ${altitude} meters`);
+                resetGame();
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawClimber();
+            rocks.forEach(drawRock);
+            moveClimber();
+            moveRocks();
+        }
+
+        function changeDirection(event) {
+            if (event.key === 'ArrowLeft') {
+                climber.x -= 10;
+            } else if (event.key === 'ArrowRight') {
+                climber.x += 10;
+            }
+        }
+
+        function startGame() {
+            resetGame();
+            gameInterval = setInterval(gameLoop, gameSpeed);
+            rockSpawner = setInterval(spawnRock, rockSpawnInterval);
+            document.addEventListener('keydown', changeDirection);
+            startButton.disabled = true;
+        }
+
+        function resetGame() {
+            climber = { x: canvas.width / 2 - climberSize / 2, y: canvas.height - 50 };
+            rocks = [];
+            altitude = 0;
+            altitudeDisplay.textContent = altitude;
+            clearInterval(gameInterval);
+            clearInterval(rockSpawner);
+            document.removeEventListener('keydown', changeDirection);
+            startButton.disabled = false;
+        }
+
+        startButton.addEventListener('click', startGame);
+    </script>
+</body>
+</html>
